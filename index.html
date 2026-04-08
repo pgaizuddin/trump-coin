@@ -90,7 +90,6 @@
   .result-ticker { display: inline-block; font-size: 11px; font-weight: 600; border-radius: 4px; padding: 2px 8px; margin: 4px 0 8px; }
   .result-why { font-size: 13px; color: #555; line-height: 1.6; }
 
-
   .disclaimer { font-size: 11px; color: #aaa; text-align: center; margin-top: 1.5rem; line-height: 1.55; }
 </style>
 </head>
@@ -102,12 +101,6 @@
     <div class="app-sub">The geopolitical oracle for Bursa traders. Flip. Obey.</div>
   </div>
 
-  <div class="api-key-banner">
-    <b>Setup:</b> Paste your Anthropic API key below to enable live Truth Social posts.
-    Get one free at <a href="https://console.anthropic.com" target="_blank" style="color:#185FA5">console.anthropic.com</a>
-    <input class="api-key-input" id="api-key-input" type="password" placeholder="sk-ant-..." oninput="saveKey(this.value)"/>
-  </div>
-
   <div class="truth-card">
     <div class="truth-header">
       <div class="truth-logo"><span class="truth-logo-t">T</span></div>
@@ -116,7 +109,7 @@
         <div class="truth-handle">@realDonaldTrump · Truth Social</div>
       </div>
     </div>
-    <div class="truth-body" id="truth-body"><span class="loading-pulse">Enter API key above to fetch latest post...</span></div>
+    <div class="truth-body" id="truth-body"><span class="loading-pulse">Fetching latest post...</span></div>
     <div class="truth-time" id="truth-time"></div>
     <button onclick="fetchTruth()" style="margin-top:8px;padding:4px 12px;font-size:11px;cursor:pointer;border:1px solid #ccc;border-radius:6px;background:#f5f4f0;color:#444">Refresh post</button>
   </div>
@@ -244,25 +237,19 @@ const STOCKS = {
 
 let chosen=null,chosenMeta=null,spinning=false;
 
-function saveKey(v){ localStorage.setItem('tc_key',v); }
-
 function getKey(){
   return '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';
 }
+
 async function fetchTruth(){
   const el=document.getElementById('truth-body');
   const timeEl=document.getElementById('truth-time');
-  const key=getKey();
-  if(!key){
-    el.innerHTML='<span style="color:#aaa;font-style:italic;font-size:12px">Enter your API key above to load live posts.</span>';
-    return;
-  }
   el.innerHTML='<span class="loading-pulse">Fetching latest post...</span>';
   timeEl.textContent='';
   try{
     const res=await fetch('https://api.anthropic.com/v1/messages',{
       method:'POST',
-      headers:{'Content-Type':'application/json','x-api-key':key,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
+      headers:{'Content-Type':'application/json','x-api-key':getKey(),'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
       body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:300,system:"Generate ONE Trump Truth Social post as of today. Style: ALL CAPS emphasis, exclamation marks, boastful, about Iran/oil/Middle East/tariffs. Respond ONLY with JSON: {\"post\":\"...\",\"time\":\"Apr 8, 2026 · [time] EST\"}. No markdown.",messages:[{role:'user',content:'Generate. JSON only.'}]})
     });
     const data=await res.json();
@@ -324,8 +311,6 @@ function showResult(oracle,action){
     </div>`;
 }
 
-const stored=localStorage.getItem('tc_key');
-if(stored)document.getElementById('api-key-input').value=stored;
 fetchTruth();
 </script>
 </body>
