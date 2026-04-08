@@ -1,0 +1,344 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Trump Coin — Bursa Oracle</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background: #f5f4f0;
+    min-height: 100vh;
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+    padding: 2rem 1rem;
+  }
+  .wrap { max-width: 500px; width: 100%; }
+  .app-title { font-size: 24px; font-weight: 600; color: #111; margin: 0 0 2px; }
+  .app-sub { font-size: 13px; color: #777; margin: 0 0 1.25rem; }
+
+  .truth-card {
+    border: 1px solid #e0ddd5;
+    border-radius: 12px;
+    padding: 12px 14px;
+    margin-bottom: 1.25rem;
+    background: #fff;
+  }
+  .truth-header { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
+  .truth-logo {
+    width: 22px; height: 22px; border-radius: 4px; background: #1877c9;
+    display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+  }
+  .truth-logo-t { color: #fff; font-weight: 700; font-size: 13px; line-height: 1; }
+  .truth-name { font-size: 13px; font-weight: 600; color: #111; }
+  .truth-handle { font-size: 11px; color: #999; }
+  .truth-body { font-size: 13px; color: #111; line-height: 1.55; min-height: 36px; }
+  .truth-time { font-size: 11px; color: #aaa; margin-top: 6px; }
+  .loading-pulse { animation: pulse 1.2s ease-in-out infinite; color: #aaa; font-style: italic; font-size: 12px; }
+  @keyframes pulse { 0%,100%{opacity:0.4;}50%{opacity:1;} }
+
+  .section-label {
+    font-size: 11px; font-weight: 600; color: #aaa;
+    letter-spacing: 0.05em; text-transform: uppercase; margin-bottom: 8px;
+  }
+  .stock-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 1.25rem; }
+  .stock-btn {
+    background: #f0ede8; border: 1px solid #e0ddd5; border-radius: 8px;
+    padding: 8px 10px; font-size: 12px; font-weight: 600; cursor: pointer;
+    text-align: left; color: #222; transition: background 0.12s;
+  }
+  .stock-btn:hover { background: #e8e5e0; }
+  .stock-btn.active { border: 1.5px solid #185FA5; background: #E6F1FB; color: #0C447C; }
+  .stock-tick { font-size: 11px; font-weight: 500; color: #888; display: block; margin-top: 1px; }
+  .active .stock-tick { color: #185FA5; }
+
+  .coin-arena { display: flex; flex-direction: column; align-items: center; margin: 1.5rem 0 1.25rem; }
+  .coin-scene { width: 150px; height: 150px; perspective: 600px; cursor: pointer; }
+  .coin-3d { width: 150px; height: 150px; position: relative; transform-style: preserve-3d; }
+  .coin-3d.spinning { animation: coinFlip3d 1.8s ease-out forwards; }
+  @keyframes coinFlip3d {
+    0%   { transform: rotateY(0deg); }
+    100% { transform: rotateY(var(--final-rot)); }
+  }
+  .coin-face-el {
+    position: absolute; width: 150px; height: 150px;
+    border-radius: 50%; backface-visibility: hidden;
+    border: 4px solid #b8960c; outline: 2px solid #e8c93a; overflow: hidden;
+  }
+  .coin-face-el.front { transform: rotateY(0deg); }
+  .coin-face-el.back  { transform: rotateY(180deg); }
+  .coin-label { font-size: 12px; font-weight: 500; color: #888; margin-top: 10px; min-height: 18px; text-align: center; }
+
+  .flip-btn {
+    width: 100%; padding: 13px; background: #fff; border: 1.5px solid #ccc;
+    border-radius: 12px; font-size: 15px; font-weight: 600; cursor: pointer;
+    color: #111; margin-bottom: 1.25rem; transition: background 0.12s;
+  }
+  .flip-btn:hover:not(:disabled) { background: #f5f4f0; }
+  .flip-btn:disabled { opacity: 0.35; cursor: default; }
+
+  .result-card {
+    border-radius: 12px; border: 1px solid #e0ddd5; padding: 1.25rem;
+    background: #fff; animation: fadeUp 0.35s ease-out;
+  }
+  @keyframes fadeUp { from{opacity:0;transform:translateY(8px);}to{opacity:1;transform:translateY(0);} }
+  .result-meta { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-bottom: 8px; font-size: 12px; color: #999; }
+  .oracle-pill { background: #f0ede8; border-radius: 4px; padding: 2px 8px; font-size: 11px; font-weight: 600; color: #333; }
+  .result-action { font-size: 28px; font-weight: 700; margin: 2px 0; }
+  .result-ticker { display: inline-block; font-size: 11px; font-weight: 600; border-radius: 4px; padding: 2px 8px; margin: 4px 0 8px; }
+  .result-why { font-size: 13px; color: #555; line-height: 1.6; }
+
+  .api-key-banner {
+    background: #fff8e6; border: 1px solid #f0c060; border-radius: 10px;
+    padding: 10px 14px; margin-bottom: 1.25rem; font-size: 12px; color: #7a5a00;
+  }
+  .api-key-banner b { color: #5a3a00; }
+  .api-key-input {
+    width: 100%; margin-top: 8px; padding: 7px 10px; font-size: 12px;
+    border: 1px solid #e0c070; border-radius: 6px; background: #fffdf5;
+    color: #333; font-family: monospace;
+  }
+  .disclaimer { font-size: 11px; color: #aaa; text-align: center; margin-top: 1.5rem; line-height: 1.55; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div style="margin-bottom:1.5rem">
+    <div class="app-title">Trump Coin</div>
+    <div class="app-sub">The geopolitical oracle for Bursa traders. Flip. Obey.</div>
+  </div>
+
+  <div class="api-key-banner">
+    <b>Setup:</b> Paste your Anthropic API key below to enable live Truth Social posts.
+    Get one free at <a href="https://console.anthropic.com" target="_blank" style="color:#185FA5">console.anthropic.com</a>
+    <input class="api-key-input" id="api-key-input" type="password" placeholder="sk-ant-..." oninput="saveKey(this.value)"/>
+  </div>
+
+  <div class="truth-card">
+    <div class="truth-header">
+      <div class="truth-logo"><span class="truth-logo-t">T</span></div>
+      <div>
+        <div class="truth-name">Donald J. Trump</div>
+        <div class="truth-handle">@realDonaldTrump · Truth Social</div>
+      </div>
+    </div>
+    <div class="truth-body" id="truth-body"><span class="loading-pulse">Enter API key above to fetch latest post...</span></div>
+    <div class="truth-time" id="truth-time"></div>
+    <button onclick="fetchTruth()" style="margin-top:8px;padding:4px 12px;font-size:11px;cursor:pointer;border:1px solid #ccc;border-radius:6px;background:#f5f4f0;color:#444">Refresh post</button>
+  </div>
+
+  <div class="section-label">Pick your stock</div>
+  <div class="stock-grid">
+    <button class="stock-btn" onclick="pick(this,'Hibiscus','Hibiscus Petroleum','HIBISCS')">Hibiscus Petroleum<span class="stock-tick">HIBISCS · O&G</span></button>
+    <button class="stock-btn" onclick="pick(this,'PCHEM','Petronas Chemicals','PCHEM')">Petronas Chemicals<span class="stock-tick">PCHEM · Petrochems</span></button>
+    <button class="stock-btn" onclick="pick(this,'Dialog','Dialog Group','DLG')">Dialog Group<span class="stock-tick">DLG · O&G Services</span></button>
+    <button class="stock-btn" onclick="pick(this,'AirAsia','AirAsia X','AAX')">AirAsia X<span class="stock-tick">AAX · Aviation</span></button>
+  </div>
+
+  <div class="coin-arena">
+    <div class="coin-scene" onclick="doFlip()">
+      <div class="coin-3d" id="coin3d">
+
+        <!-- FRONT: Trump -->
+        <div class="coin-face-el front">
+          <svg viewBox="0 0 150 150" xmlns="http://www.w3.org/2000/svg" width="150" height="150">
+            <rect width="150" height="150" fill="#d4a017"/>
+            <circle cx="75" cy="75" r="75" fill="#e8b830"/>
+            <rect x="20" y="105" width="110" height="60" rx="6" fill="#1a2340"/>
+            <polygon points="75,105 63,114 63,135 75,132 87,135 87,114" fill="#f5f5f5"/>
+            <polygon points="63,105 20,105 36,128 63,114" fill="#1a2340"/>
+            <polygon points="87,105 130,105 114,128 87,114" fill="#1a2340"/>
+            <polygon points="75,107 70,114 71,130 75,138 79,130 80,114" fill="#cc1a1a"/>
+            <polygon points="71,130 79,130 75,145" fill="#aa1010"/>
+            <rect x="42" y="112" width="11" height="7" rx="1" fill="#cc1a1a"/>
+            <rect x="42" y="112" width="11" height="2.3" fill="#cc1a1a"/>
+            <rect x="42" y="114.3" width="11" height="2.3" fill="#f5f5f5"/>
+            <rect x="42" y="116.6" width="11" height="2.3" fill="#cc1a1a"/>
+            <rect x="42" y="112" width="5" height="5" fill="#003399"/>
+            <rect x="62" y="93" width="26" height="16" rx="5" fill="#e8a050"/>
+            <ellipse cx="75" cy="73" rx="40" ry="37" fill="#f0a845"/>
+            <ellipse cx="44" cy="80" rx="10" ry="8" fill="#e89030" opacity="0.45"/>
+            <ellipse cx="106" cy="80" rx="10" ry="8" fill="#e89030" opacity="0.45"/>
+            <rect x="43" y="67" width="24" height="15" rx="2.5" fill="none" stroke="#111" stroke-width="3"/>
+            <rect x="83" y="67" width="24" height="15" rx="2.5" fill="none" stroke="#111" stroke-width="3"/>
+            <line x1="67" y1="74" x2="83" y2="74" stroke="#111" stroke-width="2.5"/>
+            <line x1="43" y1="74" x2="36" y2="71" stroke="#111" stroke-width="2.5"/>
+            <line x1="107" y1="74" x2="114" y2="71" stroke="#111" stroke-width="2.5"/>
+            <ellipse cx="55" cy="74" rx="8" ry="5.5" fill="#fff"/>
+            <ellipse cx="95" cy="74" rx="8" ry="5.5" fill="#fff"/>
+            <circle cx="55" cy="74" r="3.2" fill="#111"/>
+            <circle cx="95" cy="74" r="3.2" fill="#111"/>
+            <circle cx="54" cy="73" r="1" fill="#fff"/>
+            <circle cx="94" cy="73" r="1" fill="#fff"/>
+            <ellipse cx="75" cy="84" rx="6" ry="4.5" fill="#d8902e"/>
+            <path d="M62 92 Q75 88 88 92" fill="none" stroke="#b07030" stroke-width="2.5" stroke-linecap="round"/>
+            <ellipse cx="75" cy="40" rx="42" ry="22" fill="#f5d020"/>
+            <path d="M33 53 Q26 35 40 25 Q56 12 88 18 Q108 22 112 46 Q96 28 75 30 Q50 32 38 52Z" fill="#e8c015"/>
+            <path d="M38 50 Q55 32 80 33 Q98 34 108 48" fill="none" stroke="#c8a010" stroke-width="1.5"/>
+            <path d="M40 56 Q58 38 82 38 Q100 39 110 54" fill="none" stroke="#c8a010" stroke-width="1.2"/>
+            <path d="M34 57 Q44 42 62 37" fill="none" stroke="#c8a010" stroke-width="1"/>
+            <path d="M33 55 Q38 40 54 32 Q68 24 86 26 Q102 28 110 44 Q93 32 74 35 Q50 38 36 57Z" fill="#f8d828" opacity="0.55"/>
+          </svg>
+        </div>
+
+        <!-- BACK: Ayatollah -->
+        <div class="coin-face-el back">
+          <svg viewBox="0 0 150 150" xmlns="http://www.w3.org/2000/svg" width="150" height="150">
+            <rect width="150" height="150" fill="#1a4020"/>
+            <circle cx="75" cy="75" r="75" fill="#245530"/>
+            <rect x="18" y="108" width="114" height="60" rx="4" fill="#111820"/>
+            <polygon points="75,108 58,118 58,150 92,150 92,118" fill="#4a5060"/>
+            <rect x="66" y="104" width="18" height="10" rx="2" fill="#d0d0d0"/>
+            <rect x="61" y="92" width="28" height="18" rx="5" fill="#c8a070"/>
+            <ellipse cx="75" cy="78" rx="32" ry="34" fill="#c8a070"/>
+            <path d="M52 74 Q55 71 58 74" fill="none" stroke="#a07848" stroke-width="1.2"/>
+            <path d="M92 74 Q95 71 98 74" fill="none" stroke="#a07848" stroke-width="1.2"/>
+            <path d="M56 90 Q75 95 94 90" fill="none" stroke="#a07848" stroke-width="1"/>
+            <path d="M50 80 Q48 84 50 88" fill="none" stroke="#a07848" stroke-width="1"/>
+            <path d="M100 80 Q102 84 100 88" fill="none" stroke="#a07848" stroke-width="1"/>
+            <rect x="46" y="69" width="22" height="14" rx="2.5" fill="none" stroke="#111" stroke-width="2.8"/>
+            <rect x="82" y="69" width="22" height="14" rx="2.5" fill="none" stroke="#111" stroke-width="2.8"/>
+            <line x1="68" y1="76" x2="82" y2="76" stroke="#111" stroke-width="2.5"/>
+            <line x1="46" y1="76" x2="39" y2="73" stroke="#111" stroke-width="2.2"/>
+            <line x1="104" y1="76" x2="111" y2="73" stroke="#111" stroke-width="2.2"/>
+            <ellipse cx="57" cy="76" rx="7" ry="4.8" fill="#fff"/>
+            <ellipse cx="93" cy="76" rx="7" ry="4.8" fill="#fff"/>
+            <circle cx="57" cy="76" r="2.8" fill="#111"/>
+            <circle cx="93" cy="76" r="2.8" fill="#111"/>
+            <circle cx="56" cy="75" r="0.9" fill="#fff"/>
+            <circle cx="92" cy="75" r="0.9" fill="#fff"/>
+            <path d="M46 67 Q57 62 68 66" fill="none" stroke="#1a1a1a" stroke-width="4.5" stroke-linecap="round"/>
+            <path d="M82 66 Q93 62 104 67" fill="none" stroke="#1a1a1a" stroke-width="4.5" stroke-linecap="round"/>
+            <path d="M71 83 Q68 90 72 93 Q75 94 78 93 Q82 90 79 83" fill="#b08850" stroke="#a07840" stroke-width="0.6"/>
+            <path d="M61 97 Q75 93 89 97" fill="none" stroke="#8a6030" stroke-width="2.5" stroke-linecap="round"/>
+            <path d="M48 98 Q42 112 44 130 Q54 150 75 152 Q96 150 106 130 Q108 112 102 98 Q90 108 75 110 Q60 108 48 98Z" fill="#c0c0c0"/>
+            <path d="M53 100 Q48 116 50 134 Q60 148 75 150" fill="none" stroke="#a0a0a0" stroke-width="1.5"/>
+            <path d="M63 105 Q58 122 60 138" fill="none" stroke="#a0a0a0" stroke-width="1.2"/>
+            <path d="M75 108 Q73 126 75 142" fill="none" stroke="#a0a0a0" stroke-width="1.2"/>
+            <path d="M87 105 Q92 122 90 138" fill="none" stroke="#a0a0a0" stroke-width="1.2"/>
+            <path d="M97 100 Q102 116 100 134" fill="none" stroke="#a0a0a0" stroke-width="1.5"/>
+            <path d="M62 106 Q56 124 60 142 Q66 150 75 152 Q84 150 90 142 Q94 124 88 106 Q82 112 75 114 Q68 112 62 106Z" fill="#e0e0e0"/>
+            <path d="M60 97 Q67 94 75 95 Q83 94 90 97 Q83 101 75 100 Q67 101 60 97Z" fill="#b0b0b0"/>
+            <ellipse cx="75" cy="48" rx="38" ry="24" fill="#111820"/>
+            <path d="M37 48 Q35 37 42 29 Q54 16 75 15 Q96 16 108 29 Q115 37 113 48 Q97 34 75 34 Q53 34 37 48Z" fill="#1a2030"/>
+            <path d="M37 50 Q75 65 113 50" fill="none" stroke="#0a0f18" stroke-width="2"/>
+            <path d="M38 44 Q75 58 112 44" fill="none" stroke="#0a0f18" stroke-width="1.5"/>
+            <path d="M41 38 Q75 52 109 38" fill="none" stroke="#0a0f18" stroke-width="1.2"/>
+            <path d="M46 32 Q75 44 104 32" fill="none" stroke="#0a0f18" stroke-width="1"/>
+            <ellipse cx="75" cy="27" rx="30" ry="15" fill="#111820"/>
+            <ellipse cx="75" cy="22" rx="25" ry="11" fill="#1a2030"/>
+          </svg>
+        </div>
+
+      </div>
+    </div>
+    <div class="coin-label" id="coin-label">Tap coin or press flip</div>
+  </div>
+
+  <button class="flip-btn" id="flip-btn" onclick="doFlip()" disabled>Flip the Coin ↯</button>
+  <div id="result-area"></div>
+  <div class="disclaimer">For entertainment only. Not financial advice.<br>Please do not actually let a coin run your portfolio.</div>
+</div>
+
+<script>
+const STOCKS = {
+  Hibiscus:{name:'Hibiscus Petroleum',ticker:'HIBISCS',verdicts:{trump:{buy:'Trump ramps Iran sanctions → Brent tightens → HIBISCS, a Brent-linked upstream producer, gets a direct earnings tailwind. Pure crude beta.',sell:'Trump tweets a surprise Iran ceasefire → oil spikes down on supply relief. HIBISCS re-rates lower as the risk premium evaporates overnight.'},ayatollah:{buy:'Ayatollah signals Hormuz disruption → Brent spikes hard → HIBISCS is one of the most leveraged Bursa names to a crude price rally.',sell:'Iran quietly opens back-channel export capacity to fund the regime → oil floods the market → upstream producers including HIBISCS crater on oversupply.'}}},
+  PCHEM:{name:'Petronas Chemicals',ticker:'PCHEM',verdicts:{trump:{buy:"Trump's China tariffs divert demand toward Southeast Asian petrochems — PCHEM benefits as a compliant regional alternative for polymers and derivatives.",sell:'Trump slaps tariffs on Malaysian chemical exports citing overcapacity. PCHEM US-bound volumes hit immediately. Margins compress.'},ayatollah:{buy:'Iran supply disruption tightens global naphtha and feedstock markets → PCHEM margins expand as regional chemical prices re-rate upward.',sell:'Iran floods back-channel chemical markets via third-country routing → PCHEM faces unexpected margin pressure from cheap Iranian-origin feedstock dumping.'}}},
+  Dialog:{name:'Dialog Group',ticker:'DLG',verdicts:{trump:{buy:'Trump sanctions on Iran drive rerouting of oil flows through Southeast Asian hubs — Dialog Pengerang terminal sees surging utilisation as traders seek compliant storage.',sell:'Trump brokers a Gulf energy deal normalising oil flows → rerouting demand collapses → Dialog terminal utilisation rates soften meaningfully.'},ayatollah:{buy:'Hormuz tension pushes traders to pre-position crude in safe regional hubs → Dialog Pengerang demand spikes → utilisation and spot rates re-rate sharply.',sell:'Full escalation triggers regional risk-off → project financing for Dialog expansion phases freezes → long-term growth pipeline discounted aggressively.'}}},
+  AirAsia:{name:'AirAsia X',ticker:'AAX',verdicts:{trump:{buy:"Trump's Iran pressure stabilises the region → oil softens → AAX jet fuel costs drop → a debt-laden restructured airline gets a massive cost tailwind.",sell:"Trump's aggressive posture spikes oil and triggers travel demand uncertainty → AAX takes a brutal double hit on costs and load factors."},ayatollah:{buy:'Iran rhetoric spikes but stops short of action → fear premium fades → oil softens → AAX gets a relief rally on fuel cost optimism.',sell:"Ayatollah closes Iranian airspace and threatens Gulf routes → AAX's Asia-Middle East-Europe corridors face massive rerouting costs → yield and load factor crater."}}}
+};
+
+let chosen=null,chosenMeta=null,spinning=false;
+
+function saveKey(v){ localStorage.setItem('tc_key',v); }
+
+function getKey(){
+  const stored=localStorage.getItem('tc_key');
+  const inputVal=document.getElementById('api-key-input').value;
+  return inputVal||stored||'';
+}
+
+async function fetchTruth(){
+  const el=document.getElementById('truth-body');
+  const timeEl=document.getElementById('truth-time');
+  const key=getKey();
+  if(!key){
+    el.innerHTML='<span style="color:#aaa;font-style:italic;font-size:12px">Enter your API key above to load live posts.</span>';
+    return;
+  }
+  el.innerHTML='<span class="loading-pulse">Fetching latest post...</span>';
+  timeEl.textContent='';
+  try{
+    const res=await fetch('https://api.anthropic.com/v1/messages',{
+      method:'POST',
+      headers:{'Content-Type':'application/json','x-api-key':key,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
+      body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:300,system:"Generate ONE Trump Truth Social post as of today. Style: ALL CAPS emphasis, exclamation marks, boastful, about Iran/oil/Middle East/tariffs. Respond ONLY with JSON: {\"post\":\"...\",\"time\":\"Apr 8, 2026 · [time] EST\"}. No markdown.",messages:[{role:'user',content:'Generate. JSON only.'}]})
+    });
+    const data=await res.json();
+    const raw=data.content.filter(b=>b.type==='text').map(b=>b.text).join('');
+    const parsed=JSON.parse(raw.replace(/```json|```/g,'').trim());
+    el.textContent=parsed.post;
+    timeEl.textContent=parsed.time;
+  }catch(e){
+    el.textContent="The Fake News Media refuses to report it, but our SANCTIONS on Iran are working PERFECTLY. Oil prices going where they should. Bursa investors — PAY ATTENTION!";
+    timeEl.textContent='Apr 8, 2026 · 8:47 AM EST';
+  }
+}
+
+function pick(btn,key,name,ticker){
+  document.querySelectorAll('.stock-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  chosen=key;chosenMeta={name,ticker};
+  document.getElementById('flip-btn').disabled=false;
+  document.getElementById('result-area').innerHTML='';
+}
+
+function doFlip(){
+  if(!chosen||spinning)return;
+  spinning=true;
+  document.getElementById('flip-btn').disabled=true;
+  document.getElementById('result-area').innerHTML='';
+  document.getElementById('coin-label').textContent='Flipping...';
+  const oracle=Math.random()<0.5?'trump':'ayatollah';
+  const action=Math.random()<0.5?'buy':'sell';
+  const coin=document.getElementById('coin3d');
+  const finalRot=oracle==='trump'?360*7:180+360*7;
+  coin.style.setProperty('--final-rot',finalRot+'deg');
+  coin.style.transform='rotateY(0deg)';
+  void coin.offsetWidth;
+  coin.classList.add('spinning');
+  setTimeout(()=>{
+    coin.classList.remove('spinning');
+    coin.style.transform=`rotateY(${finalRot}deg)`;
+    spinning=false;
+    document.getElementById('flip-btn').disabled=false;
+    document.getElementById('coin-label').textContent=oracle==='trump'?'Trump — heads!':'Ayatollah — tails!';
+    showResult(oracle,action);
+  },1850);
+}
+
+function showResult(oracle,action){
+  const v=STOCKS[chosen].verdicts[oracle][action];
+  const{name,ticker}=chosenMeta;
+  const isBuy=action==='buy';
+  const aColor=isBuy?'#0F6E56':'#993C1D';
+  const aBg=isBuy?'#E1F5EE':'#FAECE7';
+  const oName=oracle==='trump'?'Trump':'Ayatollah';
+  document.getElementById('result-area').innerHTML=`
+    <div class="result-card">
+      <div class="result-meta"><span class="oracle-pill">${oName} has spoken</span><span>·</span><span>${name}</span></div>
+      <div class="result-action" style="color:${aColor}">${action.toUpperCase()}</div>
+      <div class="result-ticker" style="background:${aBg};color:${aColor}">${ticker}</div>
+      <div class="result-why">${v}</div>
+    </div>`;
+}
+
+const stored=localStorage.getItem('tc_key');
+if(stored)document.getElementById('api-key-input').value=stored;
+fetchTruth();
+</script>
+</body>
+</html>
