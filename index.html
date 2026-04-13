@@ -18,13 +18,9 @@
   .wrap { max-width: 500px; width: 100%; }
   .app-title { font-size: 24px; font-weight: 600; color: #111; margin: 0 0 2px; }
   .app-sub { font-size: 13px; color: #777; margin: 0 0 1.25rem; }
-
   .truth-card {
-    border: 1px solid #e0ddd5;
-    border-radius: 12px;
-    padding: 12px 14px;
-    margin-bottom: 1.25rem;
-    background: #fff;
+    border: 1px solid #e0ddd5; border-radius: 12px;
+    padding: 12px 14px; margin-bottom: 1.25rem; background: #fff;
   }
   .truth-header { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
   .truth-logo {
@@ -36,9 +32,6 @@
   .truth-handle { font-size: 11px; color: #999; }
   .truth-body { font-size: 13px; color: #111; line-height: 1.55; min-height: 36px; }
   .truth-time { font-size: 11px; color: #aaa; margin-top: 6px; }
-  .loading-pulse { animation: pulse 1.2s ease-in-out infinite; color: #aaa; font-style: italic; font-size: 12px; }
-  @keyframes pulse { 0%,100%{opacity:0.4;}50%{opacity:1;} }
-
   .section-label {
     font-size: 11px; font-weight: 600; color: #aaa;
     letter-spacing: 0.05em; text-transform: uppercase; margin-bottom: 8px;
@@ -53,7 +46,6 @@
   .stock-btn.active { border: 1.5px solid #185FA5; background: #E6F1FB; color: #0C447C; }
   .stock-tick { font-size: 11px; font-weight: 500; color: #888; display: block; margin-top: 1px; }
   .active .stock-tick { color: #185FA5; }
-
   .coin-arena { display: flex; flex-direction: column; align-items: center; margin: 1.5rem 0 1.25rem; }
   .coin-scene { width: 150px; height: 150px; perspective: 600px; cursor: pointer; }
   .coin-3d { width: 150px; height: 150px; position: relative; transform-style: preserve-3d; }
@@ -70,7 +62,6 @@
   .coin-face-el.front { transform: rotateY(0deg); }
   .coin-face-el.back  { transform: rotateY(180deg); }
   .coin-label { font-size: 12px; font-weight: 500; color: #888; margin-top: 10px; min-height: 18px; text-align: center; }
-
   .flip-btn {
     width: 100%; padding: 13px; background: #fff; border: 1.5px solid #ccc;
     border-radius: 12px; font-size: 15px; font-weight: 600; cursor: pointer;
@@ -78,7 +69,6 @@
   }
   .flip-btn:hover:not(:disabled) { background: #f5f4f0; }
   .flip-btn:disabled { opacity: 0.35; cursor: default; }
-
   .result-card {
     border-radius: 12px; border: 1px solid #e0ddd5; padding: 1.25rem;
     background: #fff; animation: fadeUp 0.35s ease-out;
@@ -89,7 +79,6 @@
   .result-action { font-size: 28px; font-weight: 700; margin: 2px 0; }
   .result-ticker { display: inline-block; font-size: 11px; font-weight: 600; border-radius: 4px; padding: 2px 8px; margin: 4px 0 8px; }
   .result-why { font-size: 13px; color: #555; line-height: 1.6; }
-
   .disclaimer { font-size: 11px; color: #aaa; text-align: center; margin-top: 1.5rem; line-height: 1.55; }
 </style>
 </head>
@@ -109,7 +98,7 @@
         <div class="truth-handle">@realDonaldTrump · Truth Social</div>
       </div>
     </div>
-    <div class="truth-body" id="truth-body"><span class="loading-pulse">Fetching latest post...</span></div>
+    <div class="truth-body" id="truth-body"></div>
     <div class="truth-time" id="truth-time"></div>
     <button onclick="fetchTruth()" style="margin-top:8px;padding:4px 12px;font-size:11px;cursor:pointer;border:1px solid #ccc;border-radius:6px;background:#f5f4f0;color:#444">Refresh post</button>
   </div>
@@ -237,30 +226,22 @@ const STOCKS = {
 
 let chosen=null,chosenMeta=null,spinning=false;
 
-function getKey(){
-  return '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';
-}
-
-async function fetchTruth(){
-  const el=document.getElementById('truth-body');
-  const timeEl=document.getElementById('truth-time');
-  el.innerHTML='<span class="loading-pulse">Fetching latest post...</span>';
-  timeEl.textContent='';
-  try{
-    const res=await fetch('https://api.anthropic.com/v1/messages',{
-      method:'POST',
-      headers:{'Content-Type':'application/json','x-api-key':getKey(),'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
-      body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:300,system:"Generate ONE Trump Truth Social post as of today. Style: ALL CAPS emphasis, exclamation marks, boastful, about Iran/oil/Middle East/tariffs. Respond ONLY with JSON: {\"post\":\"...\",\"time\":\"Apr 8, 2026 · [time] EST\"}. No markdown.",messages:[{role:'user',content:'Generate. JSON only.'}]})
-    });
-    const data=await res.json();
-    const raw=data.content.filter(b=>b.type==='text').map(b=>b.text).join('');
-    const parsed=JSON.parse(raw.replace(/```json|```/g,'').trim());
-    el.textContent=parsed.post;
-    timeEl.textContent=parsed.time;
-  }catch(e){
-    el.textContent="The Fake News Media refuses to report it, but our SANCTIONS on Iran are working PERFECTLY. Oil prices going where they should. Bursa investors — PAY ATTENTION!";
-    timeEl.textContent='Apr 8, 2026 · 8:47 AM EST';
-  }
+function fetchTruth(){
+  const posts=[
+    {post:"Iran is playing GAMES with the oil supply and they will REGRET IT. Our sanctions are the strongest in history. Bursa traders — pay attention, BIG moves coming!",time:"Apr 13, 2026 · 7:42 AM EST"},
+    {post:"Just got off the phone with OPEC. Nobody understands oil like me, NOBODY. The Persian Gulf situation is totally under control. Prices going where they SHOULD!",time:"Apr 13, 2026 · 9:15 AM EST"},
+    {post:"The Fake News won't report it but our tariffs are WORKING PERFECTLY. China is begging to make a deal. Malaysia benefits — smart investors know what to do!",time:"Apr 12, 2026 · 8:03 AM EST"},
+    {post:"Iran threatens the Strait of Hormuz AGAIN. Very bad move. We have the strongest military in history and they know it. Oil markets, TAKE NOTE!",time:"Apr 11, 2026 · 10:22 AM EST"},
+    {post:"LNG is FREEDOM GAS. We are energy dominant like never before. The Middle East situation is being handled, STRONGLY. Best President for energy, everyone says so!",time:"Apr 10, 2026 · 8:55 AM EST"},
+    {post:"Petrochemicals, tankers, plantations — all affected by my GENIUS trade policy. The markets know I'm right. They always figure it out eventually!",time:"Apr 9, 2026 · 11:30 AM EST"},
+    {post:"OPEC is doing what I say because they have no choice. Oil prices are perfectly calibrated. Like everything I do. The haters and losers are very upset!",time:"Apr 8, 2026 · 7:18 AM EST"},
+    {post:"Dialog, Hibiscus, AirAsia — Malaysian stocks are very interesting right now. Very! I know the region better than anyone. My tariffs are WORKING!",time:"Apr 7, 2026 · 9:44 AM EST"},
+    {post:"Iran nuclear deal? Only on MY terms. Until then, MAXIMUM PRESSURE. The oil market should price this in. I've been saying it for years — nobody listens until it's too late!",time:"Apr 6, 2026 · 8:21 AM EST"},
+    {post:"The Hormuz situation is being watched VERY closely by the greatest administration in history. Shipping companies — you're welcome for keeping the seas safe!",time:"Apr 5, 2026 · 10:05 AM EST"},
+  ];
+  const pick=posts[Math.floor(Math.random()*posts.length)];
+  document.getElementById('truth-body').textContent=pick.post;
+  document.getElementById('truth-time').textContent=pick.time;
 }
 
 function pick(btn,key,name,ticker){
